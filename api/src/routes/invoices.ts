@@ -44,7 +44,7 @@ router.post("/", async (req: Request<{}, {}, CreateInvoiceBody>, res: Response) 
       paymentLink
     );
 
-    const invoice = invoiceQueries.getById.get(id);
+    const invoice = invoiceQueries.getById.get(id) as Record<string, unknown>;
 
     res.status(201).json({
       ...invoice,

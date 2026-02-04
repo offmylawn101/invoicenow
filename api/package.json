@@ -2,6 +2,7 @@
   "name": "invoicenow-api",
   "version": "0.1.0",
   "description": "InvoiceNow Backend API",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

@@ -7,6 +7,59 @@ const dbPath = path.join(__dirname, "..", "invoicenow.db");
 
 export const db = new Database(dbPath);
 
+// Initialize tables immediately
+db.exec(`
+  CREATE TABLE IF NOT EXISTS invoices (
+    id TEXT PRIMARY KEY,
+    creator_wallet TEXT NOT NULL,
+    client_email TEXT,
+    client_wallet TEXT,
+    amount INTEGER NOT NULL,
+    token_mint TEXT NOT NULL,
+    due_date INTEGER NOT NULL,
+    memo TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    paid_at INTEGER,
+    tx_signature TEXT,
+    on_chain_address TEXT,
+    payment_link TEXT,
+    milestones TEXT,
+    reminder_count INTEGER DEFAULT 0,
+    last_reminder_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS users (
+    wallet TEXT PRIMARY KEY,
+    name TEXT,
+    email TEXT,
+    business_name TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS clients (
+    id TEXT PRIMARY KEY,
+    owner_wallet TEXT NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    wallet TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id TEXT NOT NULL,
+    sent_at INTEGER DEFAULT (strftime('%s', 'now')),
+    type TEXT,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_invoices_creator ON invoices(creator_wallet);
+  CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+  CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date);
+  CREATE INDEX IF NOT EXISTS idx_clients_owner ON clients(owner_wallet);
+`);
+
 export function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS invoices (

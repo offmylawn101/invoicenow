@@ -1,10 +1,11 @@
-import { PublicKey, Transaction, SystemProgram, Connection } from "@solana/web3.js";
+import { PublicKey, Transaction, SystemProgram, Connection, Keypair } from "@solana/web3.js";
 import {
   createTransferInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import QRCode from "qrcode";
+import crypto from "crypto";
 
 const SOLANA_RPC = process.env.SOLANA_RPC || "https://api.devnet.solana.com";
 const connection = new Connection(SOLANA_RPC);
@@ -30,8 +31,10 @@ export function generatePaymentLink(
   // solana:<recipient>?amount=<amount>&spl-token=<token>&reference=<ref>&label=<label>&message=<msg>
   const recipientPubkey = new PublicKey(recipient);
 
-  // Generate a unique reference for tracking
-  const reference = new PublicKey(invoiceId.padEnd(32, "0").slice(0, 32));
+  // Generate a unique reference for tracking (deterministic from invoice ID)
+  const hash = crypto.createHash("sha256").update(invoiceId).digest();
+  const referenceKeypair = Keypair.fromSeed(hash);
+  const reference = referenceKeypair.publicKey;
 
   let url = `solana:${recipientPubkey.toString()}`;
   const params = new URLSearchParams();
