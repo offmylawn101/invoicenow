@@ -1,153 +1,191 @@
-# InvoiceNow - Instant Invoicing on Solana
+# BadassInvoices - Every Invoice Could Be FREE
 
-**Colosseum Agent Hackathon Submission**
+**Live at [invoice.offmylawn.xyz](https://invoice.offmylawn.xyz)**
 
-InvoiceNow is an invoicing platform for freelancers that enables instant payment in USDC/SOL via Solana. An AI agent monitors invoices, sends payment reminders, and handles escrow for milestone-based work.
+BadassInvoices is a gamified invoicing platform where every invoice payment is a chance to win. Clients pay a premium for a shot at getting their invoice covered by the lottery pool. Solana payments, real email notifications, and an AI agent that manages the whole thing.
 
-## Why InvoiceNow?
+Built and operated by **Anton**, an autonomous DevOps agent, for the [Colosseum Agent Hackathon](https://colosseum.com).
 
-- **Instant Settlement**: Get paid in seconds, not 3-5 business days
-- **Near-Zero Fees**: Sub-cent transaction costs vs $25-50 wire fees
-- **AI-Powered Reminders**: Never chase payments manually again
-- **Milestone Escrow**: Protect both parties with built-in escrow
-- **Open Source**: Full transparency and customization
+## The Spin to Win Feature
+
+Every invoice can become a game of chance:
+
+1. **Risk Slider**: Clients choose their risk level from 0% to 50%
+2. **At 0%**: Standard payment, no lottery
+3. **At 50%**: Pay 2x the invoice for a 50% chance to get it FREE
+4. **Spin the Wheel**: Animated wheel reveals the result
+
+**The Math:**
+- Risk Level = Win Chance (0-50%)
+- Payment = Invoice Amount x (1 + Risk/50)
+
+**Example: $100 Invoice at 50% Risk**
+
+| Outcome | Chance | You Pay | Result |
+|---------|--------|---------|--------|
+| **WIN** | 50% | $200 | Full refund from pool |
+| **LOSE** | 50% | $200 | Invoice paid (premium goes to pool) |
+
+**Pool Mechanics:**
+- 5% house edge on premiums
+- 20% minimum reserve requirement
+- 10% max single win cap
+- Pool can be paused by admin
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   INVOICENOW                         │
+│                 BADASSINVOICES                       │
 ├─────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
 │  │   Frontend  │  │   Backend   │  │   Agent     │ │
-│  │   (Next.js) │  │   (Express) │  │  (Claude)   │ │
+│  │  (Next.js)  │  │  (Express)  │  │  (Claude)   │ │
+│  │  port 3090  │  │  port 3091  │  │  Sonnet 4   │ │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘ │
 │         └────────────────┼────────────────┘         │
-│                          │                          │
-│                 ┌────────┴────────┐                 │
-│                 │  Solana Program │                 │
-│                 │    (Anchor)     │                 │
-│                 └────────┬────────┘                 │
-│         ┌────────────────┼────────────────┐        │
-│  ┌──────┴──────┐  ┌──────┴──────┐  ┌──────┴──────┐│
-│  │  Invoice    │  │   Escrow    │  │  Payment    ││
-│  │  Registry   │  │   PDAs      │  │  Tracking   ││
-│  └─────────────┘  └─────────────┘  └─────────────┘│
+│                   ┌──────┴──────┐                   │
+│                   │   SQLite    │                    │
+│                   │  + Solana   │                    │
+│                   └──────┬──────┘                    │
+│         ┌────────────────┼────────────────┐         │
+│  ┌──────┴──────┐  ┌──────┴──────┐  ┌──────┴──────┐ │
+│  │  Invoice    │  │   Escrow    │  │  Lottery    │ │
+│  │  Registry   │  │   PDAs      │  │   Pool      │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘ │
 └─────────────────────────────────────────────────────┘
 ```
+
+- **Frontend**: Next.js 14 (Pages Router), Solana wallet adapter, TailwindCSS
+- **API**: Express + better-sqlite3, Solana Pay integration, Resend for email
+- **Agent**: Claude Sonnet 4 with tool use for invoice monitoring and reminders
+- **On-chain**: Anchor program for invoices, escrow, and lottery pool
+- **Deployment**: PM2 processes behind Cloudflare Tunnel
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Rust & Cargo
-- Solana CLI
-- Anchor CLI
+- Rust & Cargo (for Solana program)
+- Solana CLI + Anchor CLI (for Solana program)
 
-### 1. Install Dependencies
+### Install & Run
 
 ```bash
-# Root dependencies
-npm install
-
 # API
 cd api && npm install
+cp .env.example .env   # then fill in your keys
+npm run dev             # starts on port 3091
 
 # Frontend
-cd ../app && npm install
+cd app && npm install
+npm run dev             # starts on port 3090
 
-# Agent
-cd ../agent && npm install
+# Agent (optional)
+cd agent && npm install
+cp .env.example .env
+npm run dev
 ```
 
-### 2. Configure Environment
-
-```bash
-# API
-cp api/.env.example api/.env
-
-# Agent
-cp agent/.env.example agent/.env
-```
-
-Edit the `.env` files with your configuration.
-
-### 3. Build Solana Program
+### Build Solana Program (optional)
 
 ```bash
 anchor build
 anchor deploy --provider.cluster devnet
 ```
 
-### 4. Run Services
-
-```bash
-# Terminal 1: API
-cd api && npm run dev
-
-# Terminal 2: Frontend
-cd app && npm run dev
-
-# Terminal 3: Agent (optional)
-cd agent && npm run dev
-```
-
-Visit `http://localhost:3000` to use the app.
-
 ## Project Structure
 
 ```
-invoicenow/
-├── programs/invoicenow/    # Solana/Anchor program
-│   └── src/lib.rs          # Smart contract
-├── api/                    # Backend API
+badassinvoices/
+├── programs/invoicenow/    # Solana/Anchor smart contract
+│   └── src/lib.rs
+├── api/                    # Express backend
 │   └── src/
-│       ├── index.ts        # Express server
-│       ├── db.ts           # SQLite database
-│       └── routes/         # API endpoints
-│           ├── invoices.ts # Invoice CRUD
-│           ├── pay.ts      # Payment page
-│           └── webhooks.ts # Helius webhook
+│       ├── index.ts        # Server entry
+│       ├── db.ts           # SQLite schema + migrations
+│       ├── routes/
+│       │   ├── invoices.ts # Invoice CRUD
+│       │   ├── pay.ts      # Solana Pay endpoints
+│       │   ├── lottery.ts  # Lottery pool + entries
+│       │   └── webhooks.ts # Helius payment tracking
+│       └── services/
+│           ├── email.ts    # Resend SDK integration
+│           └── solana-pay.ts # Payment links + QR codes
 ├── app/                    # Next.js frontend
 │   └── pages/
-│       ├── index.tsx       # Dashboard
-│       ├── create.tsx      # Create invoice
-│       └── pay/[id].tsx    # Payment page
-├── agent/                  # AI Agent
+│       ├── index.tsx       # Landing / Dashboard
+│       ├── create.tsx      # Create invoice form
+│       └── pay/[id].tsx    # Payment page + Spin to Win
+├── agent/                  # AI invoice agent
 │   └── src/
-│       ├── index.ts        # Agent logic
-│       ├── email.ts        # Email service
-│       └── cron.ts         # Scheduled tasks
+│       ├── index.ts        # Claude tool-use agent
+│       ├── email.ts        # Email utilities
+│       └── cron.ts         # Scheduled reminder runs
 └── tests/                  # Anchor tests
 ```
 
-## Features
+## API Endpoints
 
-### For Freelancers
+Routes use short paths to avoid ad blockers.
 
-- **Create Invoices**: Professional templates with line items
-- **Payment Links**: Shareable links + QR codes
-- **Instant Payment**: USDC or SOL, directly to your wallet
-- **AI Reminders**: Automatic payment follow-ups
-- **Dashboard**: Track all invoices in one place
+### Invoices (`/v1/inv`)
 
-### For Clients
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/inv` | Create invoice |
+| GET | `/v1/inv` | List invoices by wallet |
+| GET | `/v1/inv/:id` | Get invoice details |
+| POST | `/v1/inv/:id/remind` | Send reminder email |
+| PATCH | `/v1/inv/:id/status` | Update status (admin) |
+| GET | `/v1/inv/:id/qr` | Generate QR code |
 
-- **Easy Payment**: Connect wallet, click pay
-- **Multiple Tokens**: Pay in USDC or SOL
-- **Transparent**: See exact amounts and fees
-- **Secure**: Funds go directly to freelancer
+### Lottery (`/v1/spin`)
 
-### Milestone Escrow
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/spin/pool/:tokenMint` | Pool stats |
+| POST | `/v1/spin/calculate-odds` | Calculate win probability |
+| POST | `/v1/spin/entry` | Create lottery entry |
+| POST | `/v1/spin/settle/:entryId` | Settle result |
+| GET | `/v1/spin/entry/:entryId` | Get entry details |
+| GET | `/v1/spin/recent-wins` | Recent winners |
 
-For larger projects:
-1. Split invoice into milestones
-2. Client funds full escrow upfront
-3. Funds release as milestones complete
-4. Both parties protected
+### Payments (`/pay`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/pay/:id` | Payment page data |
+| GET | `/pay/:id/transaction` | Solana Pay GET request |
+| POST | `/pay/:id/transaction` | Create payment transaction |
+
+### Webhooks (`/v1/hooks`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/hooks/helius` | Helius payment webhook |
+| POST | `/v1/hooks/verify-payment` | Manual payment verification |
+
+## AI Agent
+
+The agent uses Claude Sonnet 4 with tool use to manage invoices autonomously:
+
+**Tools:**
+- `get_pending_invoices` / `get_overdue_invoices` — query invoice state
+- `get_invoice_details` — full invoice info
+- `send_reminder` — email with urgency level (gentle, firm, urgent)
+- `check_payment_status` — verify on-chain payment
+- `generate_summary` — weekly reporting
+
+**Reminder Strategy:**
+- 3 days before due: Gentle reminder
+- On due date: Firm reminder
+- Overdue: Urgent follow-up
 
 ## Solana Program
+
+**Program ID:** `GyR2tNwj8UF4AUpiUjzXKqW9mdHcgQzuByqnyhGk6s3N`
 
 ### Instructions
 
@@ -159,105 +197,57 @@ For larger projects:
 | `mark_paid` | Record direct payment |
 | `cancel_invoice` | Cancel unpaid invoice |
 | `create_profile` | Create user profile |
+| `initialize_lottery_pool` | Create lottery pool for a token |
+| `seed_lottery_pool` | Add funds to pool |
+| `pay_with_lottery` | Pay invoice with lottery premium |
+| `settle_lottery` | Settle with random result |
+| `toggle_lottery_pool` | Pause/unpause pool |
 
 ### PDAs
 
 - **Invoice**: `[b"invoice", creator, invoice_id]`
 - **Escrow**: `[b"escrow", invoice_id]`
 - **Profile**: `[b"profile", wallet]`
-
-## AI Agent
-
-The agent uses Claude to intelligently manage invoices:
-
-- **Monitors** all pending invoices
-- **Sends reminders** based on urgency:
-  - 3 days before due: Gentle reminder
-  - On due date: Firm reminder
-  - Overdue: Urgent reminder
-- **Tracks** on-chain payment status
-- **Reports** weekly summaries
-
-### Running the Agent
-
-```bash
-# One-time run
-cd agent && npm run dev
-
-# As cron service
-cd agent && npm run cron
-```
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/invoices` | Create invoice |
-| GET | `/api/invoices` | List invoices |
-| GET | `/api/invoices/:id` | Get invoice |
-| POST | `/api/invoices/:id/remind` | Send reminder |
-| GET | `/pay/:id` | Payment page data |
-| POST | `/api/webhooks/helius` | Payment tracking |
-
-## Testing
-
-```bash
-# Anchor tests
-anchor test
-
-# Or with specific cluster
-anchor test --provider.cluster devnet
-```
-
-## Deployment
-
-### Solana Program
-
-```bash
-# Devnet
-anchor deploy --provider.cluster devnet
-
-# Mainnet
-anchor deploy --provider.cluster mainnet
-```
-
-### Backend
-
-Deploy API to your preferred platform (Vercel, Railway, etc.)
-
-### Frontend
-
-```bash
-cd app && npm run build
-```
-
-Deploy to Vercel or similar.
+- **LotteryPool**: `[b"lottery_pool", token_mint]`
+- **LotteryVault**: `[b"lottery_vault", token_mint]`
+- **LotteryEntry**: `[b"lottery_entry", invoice, client]`
 
 ## Environment Variables
 
-### API (.env)
+### API (`api/.env`)
 
 ```
 SOLANA_RPC=https://api.devnet.solana.com
-PORT=3001
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your-email
-SMTP_PASS=your-password
-HELIUS_API_KEY=your-key
+PORT=3091
+API_URL=http://localhost:3091
+APP_URL=http://localhost:3090
+RESEND_API_KEY=your-resend-key
+HELIUS_API_KEY=your-helius-key
+ADMIN_KEY=your-admin-key
 ```
 
-### Agent (.env)
+### Agent (`agent/.env`)
 
 ```
 ANTHROPIC_API_KEY=your-key
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your-email
-SMTP_PASS=your-password
+APP_URL=http://localhost:3090
 ```
 
-## Contributing
+## Production Deployment
 
-Pull requests welcome! Please read the contributing guidelines first.
+BadassInvoices runs in production at [invoice.offmylawn.xyz](https://invoice.offmylawn.xyz) via PM2 + Cloudflare Tunnel:
+
+```bash
+# Build
+cd app && npm run build
+cd ../api && npm run build
+
+# Run
+pm2 start npm --name invoicenow-app -- start   # frontend on 3090
+pm2 start npm --name invoicenow-api -- start    # API on 3091
+pm2 start npm --name invoicenow-agent -- start  # agent
+pm2 save
+```
 
 ## License
 
@@ -265,4 +255,4 @@ MIT
 
 ---
 
-Built for the Colosseum Agent Hackathon
+Built by [Anton](https://github.com/offmylawn101/badassinvoices) for the Colosseum Agent Hackathon.
