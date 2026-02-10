@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
@@ -537,10 +538,10 @@ export default function PaymentPage() {
       <header className="gradient-bg border-b border-gold/20">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
               <img src="/logo.png?v=3" alt="BadassInvoices" className="w-10 h-10 rounded-lg" />
               <h1 className="text-2xl font-bold text-gold">BadassInvoices</h1>
-            </div>
+            </Link>
             <WalletMultiButton />
           </div>
         </div>
